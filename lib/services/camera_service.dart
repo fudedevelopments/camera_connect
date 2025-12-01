@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../models/connection_status.dart';
 import '../models/log_entry.dart';
 import '../models/camera_image.dart';
+import '../models/discovered_camera.dart';
 
 /// Camera service for PTP/IP communication via platform channels
 class CameraService {
@@ -153,6 +154,70 @@ class CameraService {
       _updateStatus(ConnectionStatus.error);
       _addLog(LogEntry.error('Unexpected error', e.toString()));
       return false;
+    }
+  }
+
+  /// Auto-discover and connect to camera
+  Future<bool> autoConnect() async {
+    try {
+      _updateStatus(ConnectionStatus.connecting);
+      _addLog(LogEntry.info('Starting auto-discovery...'));
+
+      final result = await _channel.invokeMethod<Map>('autoConnect');
+
+      if (result?['success'] == true) {
+        _connectedCameraName = result?['cameraName'];
+        _connectedIpAddress = result?['ipAddress'];
+        _updateStatus(ConnectionStatus.connected);
+        _addLog(
+          LogEntry.success(
+            'Auto-connected to camera',
+            '${_connectedCameraName} at ${_connectedIpAddress}',
+          ),
+        );
+        return true;
+      } else {
+        _updateStatus(ConnectionStatus.error);
+        _addLog(LogEntry.error('Auto-connect failed', result?['error']));
+        return false;
+      }
+    } on PlatformException catch (e) {
+      _updateStatus(ConnectionStatus.error);
+      _addLog(LogEntry.error('Auto-connect error: ${e.message}'));
+      return false;
+    } catch (e) {
+      _updateStatus(ConnectionStatus.error);
+      _addLog(LogEntry.error('Unexpected error', e.toString()));
+      return false;
+    }
+  }
+
+  /// Discover cameras on the network
+  Future<List<DiscoveredCamera>> discoverCameras() async {
+    try {
+      _addLog(LogEntry.info('Discovering cameras...'));
+
+      final result = await _channel.invokeMethod<Map>('discoverCameras');
+
+      if (result?['success'] == true) {
+        final cameras =
+            (result?['cameras'] as List?)
+                ?.map(
+                  (e) => DiscoveredCamera.fromMap(Map<String, dynamic>.from(e)),
+                )
+                .toList() ??
+            [];
+        _addLog(LogEntry.success('Found ${cameras.length} camera(s)'));
+        return cameras;
+      } else {
+        _addLog(
+          LogEntry.warning('Discovery completed with issues', result?['error']),
+        );
+        return [];
+      }
+    } on PlatformException catch (e) {
+      _addLog(LogEntry.error('Discovery error: ${e.message}'));
+      return [];
     }
   }
 

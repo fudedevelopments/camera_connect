@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'screens/home_screen.dart';
 
 void main() {
@@ -10,7 +9,7 @@ class CameraConnectApp extends StatelessWidget {
   const CameraConnectApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {  
     return MaterialApp(
       title: 'Camera Connect',
       debugShowCheckedModeBanner: false,

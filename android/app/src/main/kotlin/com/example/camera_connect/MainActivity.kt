@@ -32,6 +32,8 @@ class MainActivity : FlutterActivity() {
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "connect" -> handleConnect(call.arguments as? Map<*, *>, result)
+                "autoConnect" -> handleAutoConnect(result)
+                "discoverCameras" -> handleDiscoverCameras(result)
                 "disconnect" -> handleDisconnect(result)
                 "getImages" -> handleGetImages(result)
                 "downloadImage" -> handleDownloadImage(call.arguments as? Map<*, *>, result)
@@ -125,6 +127,140 @@ class MainActivity : FlutterActivity() {
                     result.success(mapOf(
                         "success" to false,
                         "error" to e.message
+                    ))
+                }
+            }
+        }
+    }
+
+    private fun handleAutoConnect(result: MethodChannel.Result) {
+        sendLog("INFO", "Starting auto-discovery and connection...")
+        sendStatus("connecting")
+
+        coroutineScope.launch {
+            try {
+                val discovery = CameraDiscovery { level, message, details ->
+                    sendLog(level, message, details)
+                }
+
+                var connectedCamera: CameraDiscovery.DiscoveredCamera? = null
+
+                val cameras = discovery.discoverCameras { camera ->
+                    // Try to connect to the first discovered camera
+                    if (connectedCamera == null) {
+                        mainHandler.post {
+                            sendLog("INFO", "Attempting to connect to ${camera.ipAddress}")
+                        }
+                    }
+                }
+
+                if (cameras.isEmpty()) {
+                    mainHandler.post {
+                        sendStatus("error")
+                        sendLog("ERROR", "No cameras found on the network")
+                        result.success(mapOf(
+                            "success" to false,
+                            "error" to "No cameras found. Make sure you're connected to the camera's WiFi."
+                        ))
+                    }
+                    return@launch
+                }
+
+                // Try to connect to each discovered camera
+                for (camera in cameras) {
+                    sendLog("INFO", "Trying to connect to ${camera.ipAddress}...")
+                    
+                    ptpClient = PtpIpClient(
+                        ipAddress = camera.ipAddress,
+                        port = camera.port,
+                        logger = { level, message, details ->
+                            sendLog(level, message, details)
+                        }
+                    )
+
+                    val connected = ptpClient?.connect() ?: false
+
+                    if (connected) {
+                        val cameraName = ptpClient?.getCameraName() ?: camera.name ?: "Unknown Camera"
+
+                        mainHandler.post {
+                            sendStatus("connected")
+                            sendLog("SUCCESS", "Connected to camera at ${camera.ipAddress}", cameraName)
+                            result.success(mapOf(
+                                "success" to true,
+                                "cameraName" to cameraName,
+                                "ipAddress" to camera.ipAddress,
+                                "port" to camera.port
+                            ))
+                        }
+                        return@launch
+                    } else {
+                        ptpClient?.disconnect()
+                        ptpClient = null
+                    }
+                }
+
+                // No camera could be connected
+                mainHandler.post {
+                    sendStatus("error")
+                    sendLog("ERROR", "Found ${cameras.size} camera(s) but couldn't connect to any")
+                    result.success(mapOf(
+                        "success" to false,
+                        "error" to "Found cameras but connection failed. Camera may not support PTP/IP."
+                    ))
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Auto-connect error", e)
+                mainHandler.post {
+                    sendStatus("error")
+                    sendLog("ERROR", "Auto-connect error: ${e.message}", e.stackTraceToString())
+                    result.success(mapOf(
+                        "success" to false,
+                        "error" to e.message
+                    ))
+                }
+            }
+        }
+    }
+
+    private fun handleDiscoverCameras(result: MethodChannel.Result) {
+        sendLog("INFO", "Discovering cameras on the network...")
+
+        coroutineScope.launch {
+            try {
+                val discovery = CameraDiscovery { level, message, details ->
+                    sendLog(level, message, details)
+                }
+
+                val cameras = discovery.discoverCameras()
+
+                val cameraList = cameras.map { camera ->
+                    mapOf(
+                        "ipAddress" to camera.ipAddress,
+                        "port" to camera.port,
+                        "name" to camera.name,
+                        "manufacturer" to camera.manufacturer,
+                        "discoveryMethod" to camera.discoveryMethod
+                    )
+                }
+
+                mainHandler.post {
+                    sendLog("SUCCESS", "Found ${cameras.size} camera(s)")
+                    result.success(mapOf(
+                        "success" to true,
+                        "cameras" to cameraList
+                    ))
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Discovery error", e)
+                mainHandler.post {
+                    sendLog("ERROR", "Discovery error: ${e.message}")
+                    result.success(mapOf(
+                        "success" to false,
+                        "error" to e.message,
+                        "cameras" to emptyList<Map<String, Any?>>()
                     ))
                 }
             }

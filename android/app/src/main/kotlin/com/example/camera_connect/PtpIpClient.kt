@@ -103,27 +103,12 @@ class PtpIpClient(
             
             log("DEBUG", "Init command request successful")
             
-            // Connect event socket
-            val eventPort = port + 1
-            log("INFO", "Opening event socket to $ipAddress:$eventPort")
-            
-            eventSocket = Socket().apply {
-                soTimeout = READ_TIMEOUT
-                connect(InetSocketAddress(ipAddress, eventPort), CONNECT_TIMEOUT)
+            // Try to connect event socket (optional for some cameras)
+            val eventConnected = tryConnectEventSocket()
+            if (!eventConnected) {
+                log("WARNING", "Event socket not available, continuing without events")
+                // Some cameras work fine without event socket
             }
-            
-            eventInput = DataInputStream(BufferedInputStream(eventSocket!!.getInputStream()))
-            eventOutput = DataOutputStream(BufferedOutputStream(eventSocket!!.getOutputStream()))
-            
-            log("DEBUG", "Event socket connected")
-            
-            // Send Init Event Request
-            if (!sendInitEventRequest()) {
-                log("ERROR", "Init event request failed")
-                return false
-            }
-            
-            log("DEBUG", "Init event request successful")
             
             // Open session
             if (!openSession()) {
@@ -145,6 +130,43 @@ class PtpIpClient(
             disconnect()
             return false
         }
+    }
+    
+    /**
+     * Try to connect event socket - optional for some cameras
+     */
+    private fun tryConnectEventSocket(): Boolean {
+        // Try different event port strategies
+        val eventPorts = listOf(port, port + 1, 15741, 15742)
+        
+        for (eventPort in eventPorts.distinct()) {
+            try {
+                log("DEBUG", "Trying event socket on port $eventPort")
+                
+                eventSocket = Socket().apply {
+                    soTimeout = 3000 // Shorter timeout for event socket attempts
+                    connect(InetSocketAddress(ipAddress, eventPort), 3000)
+                }
+                
+                eventInput = DataInputStream(BufferedInputStream(eventSocket!!.getInputStream()))
+                eventOutput = DataOutputStream(BufferedOutputStream(eventSocket!!.getOutputStream()))
+                
+                // Send Init Event Request
+                if (sendInitEventRequest()) {
+                    log("SUCCESS", "Event socket connected on port $eventPort")
+                    return true
+                } else {
+                    eventSocket?.close()
+                    eventSocket = null
+                }
+            } catch (e: Exception) {
+                log("DEBUG", "Event socket on port $eventPort failed: ${e.message}")
+                eventSocket?.close()
+                eventSocket = null
+            }
+        }
+        
+        return false
     }
     
     /**
