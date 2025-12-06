@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection_container.dart' as di;
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/pages/splash_page.dart';
 import 'features/camera/presentation/bloc/camera_bloc.dart';
 import 'features/camera/presentation/bloc/camera_event.dart';
-import 'features/landing/presentation/pages/landing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,7 @@ class CameraConnectApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (context) => di.sl<AuthBloc>()),
         BlocProvider(
           create: (context) =>
               di.sl<CameraBloc>()..add(InitializeCameraEvent()),
@@ -37,7 +39,7 @@ class CameraConnectApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const LandingPage(),
+        home: const SplashPage(),
       ),
     );
   }

@@ -30,3 +30,8 @@ class ConnectionFailure extends Failure {
 class PlatformChannelFailure extends Failure {
   const PlatformChannelFailure({required super.message, super.details});
 }
+
+/// Auth-related failures
+class AuthFailure extends Failure {
+  const AuthFailure({required super.message, super.details});
+}

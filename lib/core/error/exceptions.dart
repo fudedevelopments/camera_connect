@@ -29,3 +29,11 @@ class ConnectionException extends AppException {
 class PlatformChannelException extends AppException {
   PlatformChannelException({required super.message, super.details});
 }
+
+class ServerException extends AppException {
+  ServerException({super.message = 'Server Error', super.details});
+}
+
+class AuthException extends AppException {
+  AuthException({super.message = 'Authentication Failed', super.details});
+}
