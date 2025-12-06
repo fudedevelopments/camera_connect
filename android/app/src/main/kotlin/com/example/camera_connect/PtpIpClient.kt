@@ -293,23 +293,40 @@ class PtpIpClient(
         
         val response = sendCommand(PTP_OC_GetObject, objectHandle.toInt())
         if (response.responseCode != PTP_RC_OK) {
-            log("ERROR", "Failed to get object: ${response.responseCode}")
+            log("ERROR", "Failed to get object: response code=0x${response.responseCode.toString(16)}")
             return null
         }
         
-        return response.data
+        val data = response.data
+        if (data != null) {
+            log("SUCCESS", "Downloaded object: ${data.size} bytes")
+        } else {
+            log("ERROR", "Object data is null despite success response")
+        }
+        
+        return data
     }
     
     /**
      * Get thumbnail
      */
     fun getThumb(objectHandle: Long): ByteArray? {
+        log("INFO", "Downloading thumbnail: $objectHandle")
+        
         val response = sendCommand(PTP_OC_GetThumb, objectHandle.toInt())
         if (response.responseCode != PTP_RC_OK) {
+            log("WARNING", "Failed to get thumbnail: response code=0x${response.responseCode.toString(16)}")
             return null
         }
         
-        return response.data
+        val data = response.data
+        if (data != null) {
+            log("SUCCESS", "Downloaded thumbnail: ${data.size} bytes")
+        } else {
+            log("WARNING", "Thumbnail data is null")
+        }
+        
+        return data
     }
     
     // ==================== Private Methods ====================
@@ -447,6 +464,8 @@ class PtpIpClient(
             val packetLength = readIntLE(commandInput!!)
             val packetType = readIntLE(commandInput!!)
             
+            log("DEBUG", "Packet: type=0x${packetType.toString(16)}, length=$packetLength")
+            
             when (packetType) {
                 PTPIP_START_DATA_PACKET -> {
                     val respTransId = readIntLE(commandInput!!)
@@ -457,6 +476,7 @@ class PtpIpClient(
                 PTPIP_DATA_PACKET -> {
                     val respTransId = readIntLE(commandInput!!)
                     val payloadLength = packetLength - 12
+                    log("DEBUG", "Data packet: transId=$respTransId, payloadLength=$payloadLength")
                     val payload = ByteArray(payloadLength)
                     commandInput?.readFully(payload)
                     dataBuffer.write(payload)
@@ -465,17 +485,21 @@ class PtpIpClient(
                 PTPIP_END_DATA_PACKET -> {
                     val respTransId = readIntLE(commandInput!!)
                     val payloadLength = packetLength - 12
+                    log("DEBUG", "End data packet: transId=$respTransId, payloadLength=$payloadLength")
                     if (payloadLength > 0) {
                         val payload = ByteArray(payloadLength)
                         commandInput?.readFully(payload)
                         dataBuffer.write(payload)
                     }
                     data = dataBuffer.toByteArray()
+                    log("DEBUG", "Total data received: ${data?.size ?: 0} bytes")
                 }
                 
                 PTPIP_CMD_RESPONSE -> {
                     responseCode = readShortLE(commandInput!!).toInt() and 0xFFFF
                     val respTransId = readIntLE(commandInput!!)
+                    
+                    log("DEBUG", "Command response: code=0x${responseCode.toString(16)}, transId=$respTransId")
                     
                     // Read any parameters
                     val paramBytes = packetLength - 14
@@ -492,7 +516,7 @@ class PtpIpClient(
                 }
                 
                 else -> {
-                    log("WARNING", "Unknown packet type: $packetType")
+                    log("WARNING", "Unknown packet type: 0x${packetType.toString(16)}")
                     // Skip remaining bytes
                     val remaining = packetLength - 8
                     if (remaining > 0) {
