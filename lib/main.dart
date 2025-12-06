@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-void main() {
+import 'core/di/injection_container.dart' as di;
+import 'features/camera/presentation/bloc/camera_bloc.dart';
+import 'features/camera/presentation/bloc/camera_event.dart';
+import 'features/camera/presentation/pages/home_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize dependency injection
+  await di.init();
+
   runApp(const CameraConnectApp());
 }
 
@@ -9,18 +19,26 @@ class CameraConnectApp extends StatelessWidget {
   const CameraConnectApp({super.key});
 
   @override
-  Widget build(BuildContext context) {  
-    return MaterialApp(
-      title: 'Camera Connect',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.dark,
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) =>
+              di.sl<CameraBloc>()..add(InitializeCameraEvent()),
         ),
-        useMaterial3: true,
+      ],
+      child: MaterialApp(
+        title: 'Camera Connect',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        home: const HomeScreen(),
       ),
-      home: const HomeScreen(),
     );
   }
 }

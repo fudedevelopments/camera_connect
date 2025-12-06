@@ -1,7 +1,10 @@
-/// Connection status enum for camera connection states
-enum ConnectionStatus { disconnected, connecting, connected, error }
+/// Connection status entity
+enum ConnectionStatus {
+  disconnected,
+  connecting,
+  connected,
+  error;
 
-extension ConnectionStatusExtension on ConnectionStatus {
   String get displayName {
     switch (this) {
       case ConnectionStatus.disconnected:
