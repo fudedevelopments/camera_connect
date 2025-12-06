@@ -2,11 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
+import '../../core/services/secure_storage_service.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/check_auth_status_usecase.dart';
+import '../../features/auth/domain/usecases/get_profile_usecase.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
@@ -21,6 +23,7 @@ import '../../features/camera/domain/usecases/get_camera_images.dart';
 import '../../features/camera/domain/usecases/get_connection_status.dart';
 import '../../features/camera/domain/usecases/download_image.dart';
 import '../../features/camera/presentation/bloc/camera_bloc.dart';
+import '../../features/settings/presentation/bloc/settings_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -61,6 +64,7 @@ Future<void> init() async {
 
   //! Core
   // Add other core dependencies here if needed
+  sl.registerLazySingleton(() => SecureStorageService(secureStorage: sl()));
 
   //! Features - Auth
   // Bloc
@@ -76,6 +80,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
+  sl.registerLazySingleton(() => GetProfileUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
@@ -88,6 +93,12 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(secureStorage: sl()),
+  );
+
+  //! Features - Settings
+  // Bloc
+  sl.registerFactory(
+    () => SettingsBloc(getProfileUseCase: sl(), logoutUseCase: sl()),
   );
 
   //! External

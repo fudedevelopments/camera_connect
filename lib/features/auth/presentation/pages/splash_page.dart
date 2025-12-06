@@ -22,14 +22,14 @@ class _SplashPageState extends State<SplashPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.blue.shade900,
-              Colors.blue.shade600,
-              Colors.purple.shade600,
+              Color(0xFF1a237e), // Deep indigo
+              Color(0xFF283593), // Indigo
+              Color(0xFF3949ab), // Lighter indigo
             ],
           ),
         ),
@@ -67,7 +67,7 @@ class _SplashPageState extends State<SplashPage> {
                   child: Icon(
                     Icons.photo_camera,
                     size: 64,
-                    color: Colors.blue.shade900,
+                    color: const Color(0xFF1a237e),
                   ),
                 ),
                 const SizedBox(height: 32),

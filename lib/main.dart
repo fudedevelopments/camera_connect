@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/splash_page.dart';
 import 'features/camera/presentation/bloc/camera_bloc.dart';
 import 'features/camera/presentation/bloc/camera_event.dart';
+import 'features/settings/presentation/bloc/settings_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,7 @@ class CameraConnectApp extends StatelessWidget {
           create: (context) =>
               di.sl<CameraBloc>()..add(InitializeCameraEvent()),
         ),
+        BlocProvider(create: (context) => di.sl<SettingsBloc>()),
       ],
       child: MaterialApp(
         title: 'Camera Connect',
@@ -39,6 +42,7 @@ class CameraConnectApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
+        routes: {'/login': (context) => const LoginPage()},
         home: const SplashPage(),
       ),
     );

@@ -11,13 +11,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -26,7 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
         LoginRequested(
-          username: _usernameController.text,
+          username: _emailController.text.trim(),
           password: _passwordController.text,
         ),
       );
@@ -37,14 +37,14 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.blue.shade900,
-              Colors.blue.shade600,
-              Colors.purple.shade600,
+              Color(0xFF1a237e), // Deep indigo
+              Color(0xFF283593), // Indigo
+              Color(0xFF3949ab), // Lighter indigo
             ],
           ),
         ),
@@ -58,24 +58,31 @@ class _LoginPageState extends State<LoginPage> {
               } else if (state is AuthFailureState) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red.shade700,
+                    content: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.white),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            state.message,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: const Color(0xFFd32f2f),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    margin: const EdgeInsets.all(16),
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               }
             },
             builder: (context, state) {
-              if (state is AuthLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                  ),
-                );
-              }
+              final isLoading = state is AuthLoading;
               return Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
@@ -98,10 +105,10 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.photo_camera,
                             size: 48,
-                            color: Colors.blue.shade900,
+                            color: Color(0xFF1a237e),
                           ),
                         ),
                         const SizedBox(height: 40),
@@ -125,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 48),
-                        // Username Field
+                        // Email Field
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -139,19 +146,21 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                           ),
                           child: TextFormField(
-                            controller: _usernameController,
+                            controller: _emailController,
+                            enabled: !isLoading,
+                            keyboardType: TextInputType.emailAddress,
                             style: TextStyle(
                               color: Colors.grey.shade900,
                               fontSize: 15,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'Username',
+                              labelText: 'Email',
                               labelStyle: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 14,
                               ),
                               prefixIcon: Icon(
-                                Icons.person_outline,
+                                Icons.email_outlined,
                                 color: Colors.grey.shade600,
                                 size: 20,
                               ),
@@ -163,7 +172,10 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter username';
+                                return 'Please enter email';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Please enter a valid email';
                               }
                               return null;
                             },
@@ -185,6 +197,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           child: TextFormField(
                             controller: _passwordController,
+                            enabled: !isLoading,
                             obscureText: true,
                             style: TextStyle(
                               color: Colors.grey.shade900,
@@ -221,24 +234,39 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: _onLoginPressed,
+                            onPressed: isLoading ? null : _onLoginPressed,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: Colors.blue.shade900,
+                              foregroundColor: const Color(0xFF1a237e),
+                              disabledBackgroundColor: Colors.white.withOpacity(
+                                0.7,
+                              ),
+                              disabledForegroundColor: const Color(
+                                0xFF1a237e,
+                              ).withOpacity(0.5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               elevation: 0,
                               shadowColor: Colors.transparent,
                             ),
-                            child: const Text(
-                              'Sign In',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Color(0xFF1a237e),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
