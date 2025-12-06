@@ -1,7 +1,5 @@
 # Flutter Clean Architecture & Coding Standards
 
-You are a Senior Flutter Developer acting as a pair programmer. You must strictly follow "Clean Architecture" principles with a "Feature-First" organization.
-
 ## 1. Architectural Layers & Dependency Rule
 * **Domain Layer (Inner):** Pure Dart. No Flutter dependencies. Contains Business Logic.
 * **Data Layer (Middle):** Implementation details. Depends on Domain. Contains API calls and local DB logic.
@@ -61,3 +59,8 @@ lib/
 ### Error Handling
 * Use `dartz` (Either<Failure, Type>) or a custom sealed class `Result` type for Repository returns.
 * Catch Exceptions in the Repository implementation and return `Failures`.
+
+## 4. Workflow & Output Constraints (CRITICAL)
+* **NO Summaries:** Do not generate a "summary" document, markdown recap, or conclusion text after completing the code.
+* **NO Example Files:** Do not create `example.dart`, dummy usage files, or `main_example.dart` unless explicitly asked.
+* **Code Only:** Provide the implementation code directly. If the task is done, stop generating.

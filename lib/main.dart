@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection_container.dart' as di;
 import 'features/camera/presentation/bloc/camera_bloc.dart';
 import 'features/camera/presentation/bloc/camera_event.dart';
-import 'features/camera/presentation/pages/home_screen.dart';
+import 'features/landing/presentation/pages/landing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +37,7 @@ class CameraConnectApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const HomeScreen(),
+        home: const LandingPage(),
       ),
     );
   }
