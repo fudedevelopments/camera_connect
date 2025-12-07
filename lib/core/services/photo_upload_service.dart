@@ -16,8 +16,6 @@ class PhotoUploadService {
     required String contentType,
   }) async {
     try {
-      print('📤 Starting upload: ${path.basename(photoFile.path)}');
-
       // Read file as bytes
       final fileBytes = await photoFile.readAsBytes();
 
@@ -32,23 +30,14 @@ class PhotoUploadService {
           },
           validateStatus: (status) => status! < 500,
         ),
-        onSendProgress: (sent, total) {
-          final progress = (sent / total * 100).toStringAsFixed(1);
-          print(
-            '📊 Upload progress: $progress% (${path.basename(photoFile.path)})',
-          );
-        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print('✅ Upload successful: ${path.basename(photoFile.path)}');
         return true;
       } else {
-        print('❌ Upload failed with status: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      print('❌ Upload error: $e');
       return false;
     }
   }
@@ -61,8 +50,6 @@ class PhotoUploadService {
     required String taskId,
   }) async {
     try {
-      print('📤 Starting background upload: ${path.basename(photoFile.path)}');
-
       // Create upload task
       final uploadTask = UploadTask(
         taskId: taskId,
@@ -79,14 +66,11 @@ class PhotoUploadService {
       final successful = await FileDownloader().enqueue(uploadTask);
 
       if (successful) {
-        print('✅ Upload task enqueued: ${path.basename(photoFile.path)}');
         return true;
       } else {
-        print('❌ Failed to enqueue upload task');
         return false;
       }
     } catch (e) {
-      print('❌ Background upload error: $e');
       return false;
     }
   }
@@ -114,7 +98,6 @@ class PhotoUploadService {
   /// Initialize background downloader
   Future<void> initialize() async {
     // FileDownloader is already configured by default, no initialization needed
-    print('✅ PhotoUploadService initialized');
   }
 
   /// Configure upload callbacks
@@ -127,17 +110,12 @@ class PhotoUploadService {
       switch (update) {
         case TaskStatusUpdate():
           if (update.status == TaskStatus.complete) {
-            print('✅ Upload completed: ${update.task.taskId}');
             onComplete?.call(update.task);
           } else if (update.status == TaskStatus.failed) {
-            print('❌ Upload failed: ${update.task.taskId}');
             onError?.call(update.task);
           }
           break;
         case TaskProgressUpdate():
-          print(
-            '📊 Upload progress: ${(update.progress * 100).toStringAsFixed(1)}%',
-          );
           onProgress?.call(update.task, update.progress);
           break;
       }

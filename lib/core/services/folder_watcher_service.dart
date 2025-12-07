@@ -55,15 +55,12 @@ class FolderWatcherService {
 
             // Don't emit files on initial scan
             if (!isInitial) {
-              print('📸 New image detected: ${path.basename(filePath)}');
               _newFileController?.add(entity);
             }
           }
         }
       }
-    } catch (e) {
-      print('❌ Error scanning folder: $e');
-    }
+    } catch (e) {}
   }
 
   /// Check if file is an image based on extension

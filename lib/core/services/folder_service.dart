@@ -120,7 +120,6 @@ class FolderService {
       }
     } catch (e) {
       // Silently fail - folder will be created when needed
-      print('Failed to initialize default folder: $e');
     }
   }
 

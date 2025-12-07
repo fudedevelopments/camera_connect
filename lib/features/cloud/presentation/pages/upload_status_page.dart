@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/upload_tracker_service.dart';
 import '../../domain/entities/upload_status.dart';
 import '../bloc/cloud_bloc.dart';
 import '../bloc/cloud_state.dart';
@@ -18,6 +20,8 @@ class UploadStatusPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uploadTrackerService = sl<UploadTrackerService>();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Upload Status'), elevation: 0),
       body: BlocBuilder<CloudBloc, CloudState>(
@@ -26,7 +30,13 @@ class UploadStatusPage extends StatelessWidget {
               ? (state.uploadStatuses[eventId] ?? [])
               : <UploadStatus>[];
 
-          if (uploadStatuses.isEmpty) {
+          // Get uploaded files history from database
+          final uploadedFilesFromDb = uploadTrackerService.getUploadedFiles(
+            eventId,
+          );
+
+          // If no current statuses but we have history, show the history
+          if (uploadStatuses.isEmpty && uploadedFilesFromDb.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -67,6 +77,9 @@ class UploadStatusPage extends StatelessWidget {
               .where((s) => s.state == UploadState.failed)
               .length;
 
+          // Total includes both current uploads and historical uploads from DB
+          final totalUploaded = uploadedFilesFromDb.length;
+
           return Column(
             children: [
               // Summary Card
@@ -97,9 +110,9 @@ class UploadStatusPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildSummaryItem(
-                          'Total',
-                          uploadStatuses.length.toString(),
-                          Icons.photo_library,
+                          'Uploaded',
+                          totalUploaded.toString(),
+                          Icons.cloud_done,
                         ),
                         _buildSummaryItem(
                           'Uploading',
@@ -122,16 +135,27 @@ class UploadStatusPage extends StatelessWidget {
                 ),
               ),
 
-              // Upload List
+              // Upload List - Show current uploads and history
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: uploadStatuses.length,
-                  itemBuilder: (context, index) {
-                    final status = uploadStatuses.reversed.toList()[index];
-                    return _buildUploadItem(context, status);
-                  },
-                ),
+                child: uploadStatuses.isNotEmpty
+                    ? ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: uploadStatuses.length,
+                        itemBuilder: (context, index) {
+                          final status = uploadStatuses.reversed
+                              .toList()[index];
+                          return _buildUploadItem(context, status);
+                        },
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: uploadedFilesFromDb.length,
+                        itemBuilder: (context, index) {
+                          final fileName = uploadedFilesFromDb.reversed
+                              .toList()[index];
+                          return _buildHistoryItem(context, fileName);
+                        },
+                      ),
               ),
             ],
           );
@@ -312,5 +336,66 @@ class UploadStatusPage extends StatelessWidget {
     } else {
       return '${difference.inDays}d ago';
     }
+  }
+
+  Widget _buildHistoryItem(BuildContext context, String fileName) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Completed icon
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.check_circle, size: 30, color: Colors.green),
+            ),
+            const SizedBox(width: 12),
+
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fileName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.cloud_done, size: 14, color: Colors.green),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Uploaded Successfully',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Status indicator
+            Icon(Icons.check_circle, color: Colors.green, size: 24),
+          ],
+        ),
+      ),
+    );
   }
 }

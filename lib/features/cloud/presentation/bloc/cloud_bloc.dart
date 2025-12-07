@@ -101,44 +101,30 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
           );
 
           if (folderExists) {
-            print('✅ Folder already exists for event: ${event.eventName}');
-            final folderPath = await folderService.getEventFolderPath(
-              event.eventName,
-            );
-            print('Using existing folder at: $folderPath');
           } else {
-            print('Creating folder for event: ${event.eventName}');
             final folder = await folderService.createEventFolder(
               event.eventName,
             );
-            print('Folder created successfully at: ${folder.path}');
 
             // Verify folder exists
             final exists = await folder.exists();
-            print('Folder exists verification: $exists');
 
             if (!exists) {
               throw Exception('Folder was not created successfully');
             }
           }
         } else {
-          print('Deleting folder for event: ${event.eventName}');
           await folderService.deleteEventFolder(event.eventName);
-          print('Folder deleted successfully');
         }
 
         // Update the event's sync status AFTER successful folder operation
         final updatedEvents = currentState.events.map((e) {
           if (e.id == event.eventId) {
-            print(
-              'Updating event ${e.eventName} sync status to: ${event.isSynced}',
-            );
             return e.copyWith(isSynced: event.isSynced);
           }
           return e;
         }).toList();
 
-        print('Emitting updated state with ${updatedEvents.length} events');
         emit(
           CloudLoaded(
             events: updatedEvents,
@@ -146,7 +132,6 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
           ),
         );
       } catch (e) {
-        print('Error toggling sync: $e');
         // If folder creation/deletion fails, revert to previous state
         emit(
           CloudError(
@@ -183,11 +168,9 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
 
           // Start watching folder for new images
           await _startWatchingFolder(event.eventId, event.eventName);
-          print('✅ Started auto-upload for event: ${event.eventName}');
         } else {
           // Stop watching folder
           await _stopWatchingFolder(event.eventId);
-          print('🛑 Stopped auto-upload for event: ${event.eventName}');
 
           // Update the event's auto-upload status to OFF
           final updatedEvents = currentState.events.map((e) {
@@ -197,16 +180,15 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
             return e;
           }).toList();
 
-          // Clear upload statuses and uploaded files tracking if disabling auto-upload
+          // Only clear upload statuses UI, but KEEP the uploaded files tracking
+          // This ensures files won't be re-uploaded when auto-upload is turned back on
           _uploadStatuses.remove(event.eventId);
-          await uploadTrackerService.clearEventTracking(event.eventId);
 
           emit(
             CloudLoaded(events: updatedEvents, uploadStatuses: _uploadStatuses),
           );
         }
       } catch (e) {
-        print('❌ Error toggling auto-upload: $e');
         emit(
           CloudError(message: 'Failed to toggle auto-upload: ${e.toString()}'),
         );
@@ -233,7 +215,6 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
 
     // Get folder path
     final folderPath = await folderService.getEventFolderPath(eventName);
-    print('📂 Watching folder: $folderPath');
 
     // Upload existing files in the folder first
     await _uploadExistingFiles(eventId, folderPath);
@@ -264,11 +245,8 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
 
       // Check if this file was already uploaded
       if (uploadTrackerService.isFileUploaded(eventId, fileName)) {
-        print('⏭️ Skipping already uploaded file: $fileName');
         return;
       }
-
-      print('📸 New photo detected: $fileName');
 
       // Add to upload statuses
       final uploadStatus = UploadStatus(
@@ -287,14 +265,11 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
       // Get upload URL from API
       final contentType = photoUploadService.getContentType(photoFile.path);
 
-      print('🔄 Requesting upload URL for: $fileName');
       final uploadUrl = await getUploadUrlUseCase(
         eventId: eventId,
         photoName: fileName,
         contentType: contentType,
       );
-
-      print('✅ Got upload URL, starting upload...');
 
       // Update to uploading state
       _updateUploadStatus(eventId, fileName, UploadState.uploading);
@@ -307,7 +282,6 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
       );
 
       if (success) {
-        print('✅ Photo upload completed successfully: $fileName');
         _updateUploadStatus(eventId, fileName, UploadState.completed);
 
         // Track this file as uploaded to prevent duplicates
@@ -316,7 +290,6 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
         // Trigger state update to refresh UI
         add(const UpdateUploadStatuses());
       } else {
-        print('❌ Failed to start photo upload: $fileName');
         _updateUploadStatus(
           eventId,
           fileName,
@@ -328,7 +301,6 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
         add(const UpdateUploadStatuses());
       }
     } catch (e) {
-      print('❌ Error handling new photo: $e');
       final fileName = path.basename(photoFile.path);
       _updateUploadStatus(
         eventId,
@@ -378,24 +350,16 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
     try {
       final dir = Directory(folderPath);
       if (!await dir.exists()) {
-        print('⚠️ Folder does not exist: $folderPath');
         return;
       }
 
-      print('🔍 Scanning for existing images in folder...');
-      print('📂 Folder path: $folderPath');
-
       // List all files in the directory asynchronously
       final entities = await dir.list().toList();
-      print('📋 Total items found: ${entities.length}');
 
       final imageFiles = <File>[];
       for (final entity in entities) {
         if (entity is File) {
           final extension = path.extension(entity.path).toLowerCase();
-          print(
-            '📄 Found file: ${path.basename(entity.path)} (extension: $extension)',
-          );
           if ([
             '.jpg',
             '.jpeg',
@@ -405,17 +369,13 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
             '.webp',
           ].contains(extension)) {
             imageFiles.add(entity);
-            print('✅ Image file added: ${path.basename(entity.path)}');
           }
         }
       }
 
       if (imageFiles.isEmpty) {
-        print('ℹ️ No existing images found in folder');
         return;
       }
-
-      print('📸 Found ${imageFiles.length} existing images to upload');
 
       // Upload each existing file
       for (final file in imageFiles) {
@@ -423,9 +383,7 @@ class CloudBloc extends Bloc<CloudEvent, CloudState> {
         // Small delay between uploads to avoid overwhelming the API
         await Future.delayed(const Duration(milliseconds: 500));
       }
-    } catch (e) {
-      print('❌ Error uploading existing files: $e');
-    }
+    } catch (e) {}
   }
 
   @override

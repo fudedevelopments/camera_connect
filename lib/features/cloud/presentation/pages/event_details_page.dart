@@ -487,8 +487,7 @@ class EventDetailsPage extends StatelessWidget {
                 ],
               ),
             ),
-            floatingActionButton:
-                currentEvent.autoUpload && uploadStatuses.isNotEmpty
+            floatingActionButton: currentEvent.autoUpload
                 ? FloatingActionButton.extended(
                     onPressed: () {
                       Navigator.push(

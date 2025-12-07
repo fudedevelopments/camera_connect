@@ -16,18 +16,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<String> login(String username, String password) async {
     try {
-      print('🔵 Login API Request:');
-      print('URL: ${ApiConfig.baseUrl}${ApiConfig.loginEndpoint}');
-      print('Data: {email: $username, password: ***}');
-
       final response = await dio.post(
         '${ApiConfig.baseUrl}${ApiConfig.loginEndpoint}',
         data: {'email': username, 'password': password},
       );
-
-      print('🟢 Login API Response:');
-      print('Status Code: ${response.statusCode}');
-      print('Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -35,39 +27,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         // Handle different response formats
         if (data is Map<String, dynamic>) {
           if (data.containsKey('token')) {
-            print('✅ Token extracted successfully');
             return data['token'] as String;
           } else {
-            print('❌ Token key not found in response');
             throw AuthException(
               message: 'Invalid response format',
               details: 'Token not found in response',
             );
           }
         } else if (data is String) {
-          print('✅ Token received as string');
           return data;
         } else {
-          print('❌ Unexpected response type: ${data.runtimeType}');
           throw AuthException(
             message: 'Invalid response format',
             details: 'Unexpected response type: ${data.runtimeType}',
           );
         }
       } else {
-        print('❌ Unexpected status code: ${response.statusCode}');
         throw AuthException(
           message: 'Login failed',
           details: 'Status code: ${response.statusCode}',
         );
       }
     } on DioException catch (e) {
-      print('🔴 DioException occurred:');
-      print('Type: ${e.type}');
-      print('Message: ${e.message}');
-      print('Response: ${e.response?.data}');
-      print('Status Code: ${e.response?.statusCode}');
-
       if (e.response?.statusCode == 401) {
         throw AuthException(
           message: 'Invalid username or password',
@@ -96,7 +77,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       }
     } catch (e) {
-      print('🔴 Unexpected error: $e');
       if (e is AppException) {
         rethrow;
       }
@@ -110,18 +90,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserProfileModel> getProfile(String token) async {
     try {
-      print('🔵 Get Profile API Request:');
-      print('URL: ${ApiConfig.baseUrl}${ApiConfig.profileEndpoint}');
-      print('Token: ${token.substring(0, 20)}...');
-
       final response = await dio.get(
         '${ApiConfig.baseUrl}${ApiConfig.profileEndpoint}',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
-      print('🟢 Get Profile API Response:');
-      print('Status Code: ${response.statusCode}');
-      print('Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -129,45 +101,34 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         if (data is Map<String, dynamic>) {
           if (data.containsKey('success') && data['success'] == true) {
             if (data.containsKey('data')) {
-              print('✅ Profile data extracted successfully');
               return UserProfileModel.fromJson(
                 data['data'] as Map<String, dynamic>,
               );
             } else {
-              print('❌ Data key not found in response');
               throw AuthException(
                 message: 'Invalid response format',
                 details: 'Data not found in response',
               );
             }
           } else {
-            print('❌ Success flag is false or missing');
             throw AuthException(
               message: 'Profile fetch failed',
               details: data['message'] ?? 'Unknown error',
             );
           }
         } else {
-          print('❌ Unexpected response type: ${data.runtimeType}');
           throw AuthException(
             message: 'Invalid response format',
             details: 'Unexpected response type: ${data.runtimeType}',
           );
         }
       } else {
-        print('❌ Unexpected status code: ${response.statusCode}');
         throw AuthException(
           message: 'Profile fetch failed',
           details: 'Status code: ${response.statusCode}',
         );
       }
     } on DioException catch (e) {
-      print('🔴 DioException occurred:');
-      print('Type: ${e.type}');
-      print('Message: ${e.message}');
-      print('Response: ${e.response?.data}');
-      print('Status Code: ${e.response?.statusCode}');
-
       if (e.response?.statusCode == 401) {
         throw AuthException(
           message: 'Unauthorized - Invalid or expired token',
@@ -196,7 +157,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       }
     } catch (e) {
-      print('🔴 Unexpected error: $e');
       if (e is AppException) {
         rethrow;
       }
