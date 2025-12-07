@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/folder_service.dart';
 import '../../domain/entities/event.dart';
+import '../../domain/entities/upload_status.dart';
 import '../bloc/cloud_bloc.dart';
 import '../bloc/cloud_event.dart';
 import '../bloc/cloud_state.dart';
+import 'upload_status_page.dart';
 
 /// Event details page showing event information and sync controls
 class EventDetailsPage extends StatelessWidget {
@@ -52,26 +54,91 @@ class EventDetailsPage extends StatelessWidget {
           }
         }
       },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Event Details'), elevation: 0),
-        body: BlocBuilder<CloudBloc, CloudState>(
-          builder: (context, state) {
-            // Get the latest event data from state
-            final currentEvent = state is CloudLoaded
-                ? state.events.firstWhere(
-                    (e) => e.id == event.id,
-                    orElse: () => event,
-                  )
-                : event;
+      child: BlocBuilder<CloudBloc, CloudState>(
+        builder: (context, state) {
+          // Get the latest event data from state
+          final currentEvent = state is CloudLoaded
+              ? state.events.firstWhere(
+                  (e) => e.id == event.id,
+                  orElse: () => event,
+                )
+              : event;
 
-            final eventDate = DateTime.fromMillisecondsSinceEpoch(
-              currentEvent.eventDate,
-            );
+          final eventDate = DateTime.fromMillisecondsSinceEpoch(
+            currentEvent.eventDate,
+          );
 
-            return SingleChildScrollView(
+          // Get upload statuses for this event
+          final uploadStatuses = state is CloudLoaded
+              ? (state.uploadStatuses[currentEvent.id] ?? [])
+              : <UploadStatus>[];
+
+          // Count active uploads
+          final activeUploads = uploadStatuses
+              .where(
+                (s) =>
+                    s.state == UploadState.detected ||
+                    s.state == UploadState.gettingUrl ||
+                    s.state == UploadState.uploading,
+              )
+              .length;
+
+          return Scaffold(
+            appBar: AppBar(title: const Text('Event Details'), elevation: 0),
+            body: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Upload Notification Bar (only show when there are active uploads)
+                  if (currentEvent.autoUpload && activeUploads > 0)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[700],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '$activeUploads photo${activeUploads > 1 ? 's' : ''} uploading...',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.cloud_upload,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Event Header
                   Container(
                     width: double.infinity,
@@ -257,6 +324,106 @@ class EventDetailsPage extends StatelessWidget {
                     ),
                   ),
 
+                  // Auto-Upload Card (only shown when synced)
+                  if (currentEvent.isSynced)
+                    Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      currentEvent.autoUpload
+                                          ? Icons.cloud_upload
+                                          : Icons.cloud_upload_outlined,
+                                      color: currentEvent.autoUpload
+                                          ? Colors.blue
+                                          : Colors.grey,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Auto-Upload',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          currentEvent.autoUpload
+                                              ? 'Watching folder for new photos'
+                                              : 'Auto-upload disabled',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                Switch(
+                                  value: currentEvent.autoUpload,
+                                  onChanged: (value) {
+                                    context.read<CloudBloc>().add(
+                                      ToggleAutoUpload(
+                                        eventId: currentEvent.id,
+                                        eventName: currentEvent.eventName,
+                                        autoUpload: value,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            if (currentEvent.autoUpload) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Colors.blue[700],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'New photos added to the folder will be automatically uploaded to the cloud',
+                                        style: TextStyle(
+                                          color: Colors.blue[700],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
                   // Event Details Section
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -319,9 +486,27 @@ class EventDetailsPage extends StatelessWidget {
                   ),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+            floatingActionButton:
+                currentEvent.autoUpload && uploadStatuses.isNotEmpty
+                ? FloatingActionButton.extended(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UploadStatusPage(
+                            eventId: currentEvent.id,
+                            eventName: currentEvent.eventName,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text('Upload Status'),
+                  )
+                : null,
+          );
+        },
       ),
     );
   }

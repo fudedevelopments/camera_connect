@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/services/folder_service.dart';
+import 'core/services/upload_tracker_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/splash_page.dart';
@@ -19,6 +20,10 @@ void main() async {
   // Initialize default folder (Documents/camera_connect)
   final folderService = di.sl<FolderService>();
   await folderService.initializeDefaultFolder();
+
+  // Initialize upload tracker service
+  final uploadTrackerService = di.sl<UploadTrackerService>();
+  await uploadTrackerService.initialize();
 
   runApp(const CameraConnectApp());
 }

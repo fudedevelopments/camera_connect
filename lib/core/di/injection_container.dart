@@ -4,6 +4,9 @@ import 'package:get_it/get_it.dart';
 
 import '../../core/services/secure_storage_service.dart';
 import '../../core/services/folder_service.dart';
+import '../../core/services/folder_watcher_service.dart';
+import '../../core/services/photo_upload_service.dart';
+import '../../core/services/upload_tracker_service.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -28,6 +31,7 @@ import '../../features/cloud/data/datasources/event_remote_data_source.dart';
 import '../../features/cloud/data/repositories/event_repository_impl.dart';
 import '../../features/cloud/domain/repositories/event_repository.dart';
 import '../../features/cloud/domain/usecases/get_events.dart';
+import '../../features/cloud/domain/usecases/get_upload_url.dart';
 import '../../features/cloud/domain/usecases/toggle_event_active.dart';
 import '../../features/cloud/presentation/bloc/cloud_bloc.dart';
 import '../../features/settings/presentation/bloc/settings_bloc.dart';
@@ -73,6 +77,9 @@ Future<void> init() async {
   // Add other core dependencies here if needed
   sl.registerLazySingleton(() => SecureStorageService(secureStorage: sl()));
   sl.registerLazySingleton(() => FolderService(storageService: sl()));
+  sl.registerLazySingleton(() => FolderWatcherService());
+  sl.registerLazySingleton(() => PhotoUploadService(dio: sl()));
+  sl.registerLazySingleton(() => UploadTrackerService());
 
   //! Features - Auth
   // Bloc
@@ -119,13 +126,18 @@ Future<void> init() async {
     () => CloudBloc(
       getEventsUseCase: sl(),
       toggleEventActiveUseCase: sl(),
+      getUploadUrlUseCase: sl(),
       folderService: sl(),
+      folderWatcherService: sl(),
+      photoUploadService: sl(),
+      uploadTrackerService: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => GetEventsUseCase(sl()));
   sl.registerLazySingleton(() => ToggleEventActiveUseCase(sl()));
+  sl.registerLazySingleton(() => GetUploadUrl(sl()));
 
   // Repository
   sl.registerLazySingleton<EventRepository>(
@@ -134,7 +146,7 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<EventRemoteDataSource>(
-    () => EventRemoteDataSourceImpl(dio: sl()),
+    () => EventRemoteDataSourceImpl(dio: sl(), secureStorage: sl()),
   );
 
   //! External

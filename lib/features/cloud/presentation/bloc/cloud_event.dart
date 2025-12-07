@@ -33,3 +33,23 @@ class ToggleEventSync extends CloudEvent {
   @override
   List<Object?> get props => [eventId, eventName, isSynced];
 }
+
+class ToggleAutoUpload extends CloudEvent {
+  final String eventId;
+  final String eventName;
+  final bool autoUpload;
+
+  const ToggleAutoUpload({
+    required this.eventId,
+    required this.eventName,
+    required this.autoUpload,
+  });
+
+  @override
+  List<Object?> get props => [eventId, eventName, autoUpload];
+}
+
+/// Internal event to update upload statuses in the state
+class UpdateUploadStatuses extends CloudEvent {
+  const UpdateUploadStatuses();
+}

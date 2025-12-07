@@ -68,6 +68,7 @@ class EventModel extends Event {
       isActive: isActive,
       isPublished: isPublished,
       isSynced: false, // Always false from API, sync is local only
+      autoUpload: false, // Always false from API, auto-upload is local only
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

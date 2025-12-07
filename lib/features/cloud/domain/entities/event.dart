@@ -12,6 +12,7 @@ class Event {
   final bool isActive;
   final bool isPublished;
   final bool isSynced; // Sync status for local folder
+  final bool autoUpload; // Auto-upload photos to cloud
   final int createdAt;
   final int updatedAt;
 
@@ -28,6 +29,7 @@ class Event {
     required this.isActive,
     required this.isPublished,
     this.isSynced = false,
+    this.autoUpload = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -45,6 +47,7 @@ class Event {
     bool? isActive,
     bool? isPublished,
     bool? isSynced,
+    bool? autoUpload,
     int? createdAt,
     int? updatedAt,
   }) {
@@ -61,6 +64,7 @@ class Event {
       isActive: isActive ?? this.isActive,
       isPublished: isPublished ?? this.isPublished,
       isSynced: isSynced ?? this.isSynced,
+      autoUpload: autoUpload ?? this.autoUpload,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
