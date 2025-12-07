@@ -18,3 +18,18 @@ class ToggleEventStatus extends CloudEvent {
   @override
   List<Object?> get props => [eventId, isActive];
 }
+
+class ToggleEventSync extends CloudEvent {
+  final String eventId;
+  final String eventName;
+  final bool isSynced;
+
+  const ToggleEventSync({
+    required this.eventId,
+    required this.eventName,
+    required this.isSynced,
+  });
+
+  @override
+  List<Object?> get props => [eventId, eventName, isSynced];
+}

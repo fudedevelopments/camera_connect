@@ -8,6 +8,7 @@ class SecureStorageService {
     : _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   static const String _jwtTokenKey = 'jwt_token';
+  static const String _folderPathKey = 'event_folder_path';
 
   /// Store JWT token securely
   Future<void> saveJwtToken(String token) async {
@@ -22,6 +23,16 @@ class SecureStorageService {
   /// Delete JWT token (used for logout)
   Future<void> deleteJwtToken() async {
     await _secureStorage.delete(key: _jwtTokenKey);
+  }
+
+  /// Store custom folder path
+  Future<void> saveFolderPath(String path) async {
+    await _secureStorage.write(key: _folderPathKey, value: path);
+  }
+
+  /// Retrieve custom folder path
+  Future<String?> getFolderPath() async {
+    return await _secureStorage.read(key: _folderPathKey);
   }
 
   /// Clear all stored data

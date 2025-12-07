@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/settings_bloc.dart';
 import '../bloc/settings_event.dart';
 import '../bloc/settings_state.dart';
+import '../widgets/folder_picker_dialog.dart';
 import 'profile_details_page.dart';
 
 /// Settings page - App settings and preferences
@@ -14,11 +15,28 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  String? _currentFolderPath;
+
   @override
   void initState() {
     super.initState();
-    // Load profile when page is opened
+    // Load profile and folder path when page is opened
     context.read<SettingsBloc>().add(const LoadProfileEvent());
+    context.read<SettingsBloc>().add(const LoadFolderPathEvent());
+  }
+
+  Future<void> _pickFolder() async {
+    if (!mounted) return;
+
+    // Show folder browser dialog
+    final selectedPath = await showDialog<String>(
+      context: context,
+      builder: (context) => FolderPickerDialog(initialPath: _currentFolderPath),
+    );
+
+    if (selectedPath != null && mounted) {
+      context.read<SettingsBloc>().add(UpdateFolderPathEvent(selectedPath));
+    }
   }
 
   @override
@@ -37,6 +55,20 @@ class _SettingsPageState extends State<SettingsPage> {
                 SnackBar(
                   content: Text(state.message),
                   backgroundColor: Colors.red,
+                ),
+              );
+            } else if (state is FolderPathLoaded) {
+              setState(() {
+                _currentFolderPath = state.folderPath;
+              });
+            } else if (state is FolderPathUpdated) {
+              setState(() {
+                _currentFolderPath = state.folderPath;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Folder path updated successfully'),
+                  backgroundColor: Colors.green,
                 ),
               );
             }
@@ -149,6 +181,62 @@ class _SettingsPageState extends State<SettingsPage> {
                           title: const Text('Privacy'),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {},
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Storage Settings Section
+                  const Text(
+                    'STORAGE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 4,
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.folder_outlined),
+                          title: const Text('Event Folder Location'),
+                          subtitle: Text(
+                            _currentFolderPath ?? 'Loading...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: ElevatedButton.icon(
+                            onPressed: _pickFolder,
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: const Text('Change'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.info_outline),
+                          title: const Text('About Storage'),
+                          subtitle: Text(
+                            'Event folders will be created in the selected location',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
                         ),
                       ],
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../core/services/secure_storage_service.dart';
+import '../../core/services/folder_service.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -71,6 +72,7 @@ Future<void> init() async {
   //! Core
   // Add other core dependencies here if needed
   sl.registerLazySingleton(() => SecureStorageService(secureStorage: sl()));
+  sl.registerLazySingleton(() => FolderService(storageService: sl()));
 
   //! Features - Auth
   // Bloc
@@ -104,13 +106,21 @@ Future<void> init() async {
   //! Features - Settings
   // Bloc
   sl.registerFactory(
-    () => SettingsBloc(getProfileUseCase: sl(), logoutUseCase: sl()),
+    () => SettingsBloc(
+      getProfileUseCase: sl(),
+      logoutUseCase: sl(),
+      folderService: sl(),
+    ),
   );
 
   //! Features - Cloud
   // Bloc
   sl.registerFactory(
-    () => CloudBloc(getEventsUseCase: sl(), toggleEventActiveUseCase: sl()),
+    () => CloudBloc(
+      getEventsUseCase: sl(),
+      toggleEventActiveUseCase: sl(),
+      folderService: sl(),
+    ),
   );
 
   // Use cases

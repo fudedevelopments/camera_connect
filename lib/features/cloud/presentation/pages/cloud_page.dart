@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/cloud_bloc.dart';
 import '../bloc/cloud_event.dart';
 import '../bloc/cloud_state.dart';
+import 'event_details_page.dart';
 
 /// Cloud page - Cloud storage and sync
 class CloudPage extends StatefulWidget {
@@ -13,13 +14,6 @@ class CloudPage extends StatefulWidget {
 }
 
 class _CloudPageState extends State<CloudPage> {
-  @override
-  void initState() {
-    super.initState();
-    // Load events when page loads
-    context.read<CloudBloc>().add(LoadEvents());
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,10 +128,14 @@ class _CloudPageState extends State<CloudPage> {
                                   vertical: 8,
                                 ),
                                 leading: Icon(
-                                  Icons.event,
-                                  color: event.isActive
+                                  event.isSynced
+                                      ? Icons.cloud_done
+                                      : Icons.event,
+                                  color: event.isSynced
                                       ? Colors.green
-                                      : Colors.grey,
+                                      : (event.isActive
+                                            ? Colors.blue
+                                            : Colors.grey),
                                   size: 32,
                                 ),
                                 title: Text(
@@ -156,12 +154,33 @@ class _CloudPageState extends State<CloudPage> {
                                       style: TextStyle(color: Colors.grey[400]),
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(
-                                      '${eventDate.day}/${eventDate.month}/${eventDate.year}',
-                                      style: TextStyle(
-                                        color: Colors.grey[500],
-                                        fontSize: 12,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${eventDate.day}/${eventDate.month}/${eventDate.year}',
+                                          style: TextStyle(
+                                            color: Colors.grey[500],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        if (event.isSynced) ...[
+                                          Icon(
+                                            Icons.sync,
+                                            size: 12,
+                                            color: Colors.green[600],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Syncing',
+                                            style: TextStyle(
+                                              color: Colors.green[600],
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                     if (event.description.isNotEmpty) ...[
                                       const SizedBox(height: 2),
@@ -177,17 +196,16 @@ class _CloudPageState extends State<CloudPage> {
                                     ],
                                   ],
                                 ),
-                                trailing: Switch(
-                                  value: event.isActive,
-                                  onChanged: (value) {
-                                    context.read<CloudBloc>().add(
-                                      ToggleEventStatus(
-                                        eventId: event.id,
-                                        isActive: value,
-                                      ),
-                                    );
-                                  },
-                                ),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EventDetailsPage(event: event),
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           },

@@ -37,3 +37,21 @@ class SettingsError extends SettingsState {
 class LogoutSuccess extends SettingsState {
   const LogoutSuccess();
 }
+
+class FolderPathLoaded extends SettingsState {
+  final String folderPath;
+
+  const FolderPathLoaded(this.folderPath);
+
+  @override
+  List<Object?> get props => [folderPath];
+}
+
+class FolderPathUpdated extends SettingsState {
+  final String folderPath;
+
+  const FolderPathUpdated(this.folderPath);
+
+  @override
+  List<Object?> get props => [folderPath];
+}
