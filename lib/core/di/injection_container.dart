@@ -23,6 +23,12 @@ import '../../features/camera/domain/usecases/get_camera_images.dart';
 import '../../features/camera/domain/usecases/get_connection_status.dart';
 import '../../features/camera/domain/usecases/download_image.dart';
 import '../../features/camera/presentation/bloc/camera_bloc.dart';
+import '../../features/cloud/data/datasources/event_remote_data_source.dart';
+import '../../features/cloud/data/repositories/event_repository_impl.dart';
+import '../../features/cloud/domain/repositories/event_repository.dart';
+import '../../features/cloud/domain/usecases/get_events.dart';
+import '../../features/cloud/domain/usecases/toggle_event_active.dart';
+import '../../features/cloud/presentation/bloc/cloud_bloc.dart';
 import '../../features/settings/presentation/bloc/settings_bloc.dart';
 
 final sl = GetIt.instance;
@@ -99,6 +105,26 @@ Future<void> init() async {
   // Bloc
   sl.registerFactory(
     () => SettingsBloc(getProfileUseCase: sl(), logoutUseCase: sl()),
+  );
+
+  //! Features - Cloud
+  // Bloc
+  sl.registerFactory(
+    () => CloudBloc(getEventsUseCase: sl(), toggleEventActiveUseCase: sl()),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetEventsUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleEventActiveUseCase(sl()));
+
+  // Repository
+  sl.registerLazySingleton<EventRepository>(
+    () => EventRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<EventRemoteDataSource>(
+    () => EventRemoteDataSourceImpl(dio: sl()),
   );
 
   //! External

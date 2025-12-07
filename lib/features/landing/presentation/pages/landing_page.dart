@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/injection_container.dart';
 import '../../../camera/presentation/pages/camera_connect_page.dart';
 import '../../../gallery/presentation/pages/gallery_page.dart';
 import '../../../cloud/presentation/pages/cloud_page.dart';
+import '../../../cloud/presentation/bloc/cloud_bloc.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
 /// Main landing screen with bottom navigation
@@ -16,17 +19,21 @@ class LandingPage extends StatefulWidget {
 class _LandingPageState extends State<LandingPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const CameraConnectPage(),
-    const GalleryPage(),
-    const CloudPage(),
-    const SettingsPage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          const CameraConnectPage(),
+          const GalleryPage(),
+          BlocProvider(
+            create: (_) => sl<CloudBloc>(),
+            child: const CloudPage(),
+          ),
+          const SettingsPage(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
