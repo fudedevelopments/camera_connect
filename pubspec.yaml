@@ -62,6 +62,9 @@ dependencies:
   
   # Background Upload
   background_downloader: ^9.4.0
+  
+  # Image Compression
+  flutter_image_compress: ^2.3.0
 
 dev_dependencies:
   flutter_test:

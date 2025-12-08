@@ -7,6 +7,7 @@ import '../../core/services/folder_service.dart';
 import '../../core/services/folder_watcher_service.dart';
 import '../../core/services/photo_upload_service.dart';
 import '../../core/services/upload_tracker_service.dart';
+import '../../core/services/image_compression_service.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -78,7 +79,10 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SecureStorageService(secureStorage: sl()));
   sl.registerLazySingleton(() => FolderService(storageService: sl()));
   sl.registerLazySingleton(() => FolderWatcherService());
-  sl.registerLazySingleton(() => PhotoUploadService(dio: sl()));
+  sl.registerLazySingleton(() => ImageCompressionService());
+  sl.registerLazySingleton(
+    () => PhotoUploadService(dio: sl(), compressionService: sl()),
+  );
   sl.registerLazySingleton(() => UploadTrackerService());
 
   //! Features - Auth

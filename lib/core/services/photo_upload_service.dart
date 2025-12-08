@@ -1,13 +1,26 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:background_downloader/background_downloader.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
+import 'image_compression_service.dart';
 
 /// Service for uploading photos to cloud using background_downloader
 class PhotoUploadService {
   final Dio _dio;
+  final ImageCompressionService _compressionService;
 
-  PhotoUploadService({required Dio dio}) : _dio = dio;
+  PhotoUploadService({
+    required Dio dio,
+    required ImageCompressionService compressionService,
+  }) : _dio = dio,
+       _compressionService = compressionService;
+
+  /// Upload a photo to the presigned URL
+  /// Automatically compresses image if needed before upload
+  Future<File> prepareImageForUpload(File photoFile) async {
+    return await _compressionService.compressImageIfNeeded(photoFile);
+  }
 
   /// Upload a photo to the presigned URL
   Future<bool> uploadPhoto({
@@ -16,8 +29,17 @@ class PhotoUploadService {
     required String contentType,
   }) async {
     try {
+      final fileName = path.basename(photoFile.path);
+      developer.log('📤 Starting Photo Upload: $fileName', name: 'PhotoUpload');
+
+      // Compress image if needed
+      final processedFile = await prepareImageForUpload(photoFile);
+
       // Read file as bytes
-      final fileBytes = await photoFile.readAsBytes();
+      final fileBytes = await processedFile.readAsBytes();
+      final sizeStr = _compressionService.getFileSizeString(fileBytes.length);
+
+      developer.log('  Uploading ${sizeStr}...', name: 'PhotoUpload');
 
       // Upload to presigned URL using PUT request
       final response = await _dio.put(
@@ -33,16 +55,26 @@ class PhotoUploadService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
+        developer.log(
+          '✅ Upload Successful (Status: ${response.statusCode})',
+          name: 'PhotoUpload',
+        );
         return true;
       } else {
+        developer.log(
+          '❌ Upload Failed (Status: ${response.statusCode})',
+          name: 'PhotoUpload',
+        );
         return false;
       }
     } catch (e) {
+      developer.log('❌ Upload Error: $e', name: 'PhotoUpload', error: e);
       return false;
     }
   }
 
   /// Upload a photo using background_downloader for reliability
+  /// Automatically compresses image if needed before upload
   Future<bool> uploadPhotoBackground({
     required File photoFile,
     required String uploadUrl,
@@ -50,13 +82,29 @@ class PhotoUploadService {
     required String taskId,
   }) async {
     try {
+      final fileName = path.basename(photoFile.path);
+      developer.log(
+        '📤 Starting Background Upload: $fileName',
+        name: 'PhotoUpload',
+      );
+
+      // Compress image if needed
+      final processedFile = await prepareImageForUpload(photoFile);
+      final fileSize = await processedFile.length();
+      final sizeStr = _compressionService.getFileSizeString(fileSize);
+
+      developer.log(
+        '  Enqueueing upload task (${sizeStr})...',
+        name: 'PhotoUpload',
+      );
+
       // Create upload task
       final uploadTask = UploadTask(
         taskId: taskId,
         url: uploadUrl,
-        filename: path.basename(photoFile.path),
+        filename: path.basename(processedFile.path),
         baseDirectory: BaseDirectory.root,
-        directory: path.dirname(photoFile.path),
+        directory: path.dirname(processedFile.path),
         post: 'PUT', // Use PUT for S3 presigned URLs
         headers: {'Content-Type': contentType},
         updates: Updates.statusAndProgress,
@@ -66,11 +114,21 @@ class PhotoUploadService {
       final successful = await FileDownloader().enqueue(uploadTask);
 
       if (successful) {
+        developer.log(
+          '✅ Upload task enqueued successfully',
+          name: 'PhotoUpload',
+        );
         return true;
       } else {
+        developer.log('❌ Failed to enqueue upload task', name: 'PhotoUpload');
         return false;
       }
     } catch (e) {
+      developer.log(
+        '❌ Background Upload Error: $e',
+        name: 'PhotoUpload',
+        error: e,
+      );
       return false;
     }
   }
